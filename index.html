@@ -4,42 +4,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimplificaAI - Pony Alpha</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>SimplificaAI Studio Pro</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Merriweather:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <header>
-        <div class="container header-content">
-            <h1 style="font-size: 1.2rem; margin:0;">🦄 SimplificaAI <span
-                    style="font-size:0.8em; color:#666">(Pony)</span></h1>
-            <div style="display:flex; gap:10px;">
-                <input type="password" id="apiKey" placeholder="Cole sua OpenRouter API Key">
-                <button id="btnAnalyze" class="btn-primary">Analisar Texto</button>
+    <div class="container">
+
+        <div class="settings-bar">
+            <input type="password" id="apiKey" class="api-input" placeholder="OpenRouter API Key">
+        </div>
+
+        <header>
+            <div class="gauge-card">
+                <div class="gauge-header">
+                    <span>Complexo</span>
+                    <span>Simples</span>
+                </div>
+                <div class="gauge-track">
+                    <div id="gaugeMarker" class="gauge-marker"></div>
+                </div>
+
+                <div class="score-big" id="scoreDisplay">--</div>
+                <div class="score-label" id="statusText">Digite ou cole um texto</div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <main class="container">
-        <div id="statusIndicator" style="margin-bottom: 10px; font-size: 0.9rem; color: #6B7280;">
-            Cole seu texto, insira a chave e clique em Analisar.
-        </div>
-
-        <div class="editor-wrapper">
+        <main class="editor-container">
             <div id="editor" class="rich-editor" contenteditable="true" spellcheck="false">
                 Nesta senda, impende obtemperar que a tutela jurisdicional invocada na peça exordial carece, de forma
-                flagrante, dos pressupostos de admissibilidade. O decurso do lapso temporal, aliado à inércia contumaz
-                da parte ex adversa, ensejou a preclusão consumativa do direito pleiteado. Outrossim, o pleito não
-                merece guarida.
+                flagrante, dos pressupostos de admissibilidade. O decurso do lapso temporal ensejou a preclusão
+                consumativa. Outrossim, o pleito não merece guarida.
             </div>
-        </div>
-    </main>
+        </main>
+
+    </div>
 
     <div id="contextMenu" class="context-menu">
-        <div class="menu-header">SUGESTÕES SIMPLIFICADAS (IA)</div>
-        <div id="menuOptions" class="menu-options"></div>
+        <div class="menu-header">
+            <span>Sugestões Inteligentes</span>
+            <span style="color:var(--primary)">IA</span>
+        </div>
+        <div id="menuOptions"></div>
     </div>
 
     <script src="script.js"></script>
