@@ -1,10 +1,9 @@
-// content.js - Script principal da extensão SimplificaAI
-// Responsável por detectar editores, analisar texto e gerenciar UI
+// content.js - Script principal da extensão SimplificaAI - V3 (Restaurado + Correções)
 
 (function() {
     'use strict';
 
-    // Estado global
+    // Estado global - ESTRUTURA ORIGINAL
     const State = {
         currentEditor: null,
         editorType: null,
@@ -17,7 +16,7 @@
         lastAnalyzedText: ''
     };
 
-    // Seletores por tipo de editor
+    // Seletores - ESTRUTURA ORIGINAL com expansão para Gmail
     const EditorSelectors = {
         gdocs: {
             container: '.kix-appview-editor',
@@ -31,8 +30,12 @@
         cke5: { editor: '.ck-editor__editable' }
     };
 
+    // ==========================================
+    // INICIALIZAÇÃO - ORIGINAL
+    // ==========================================
+
     function init() {
-        console.log('[SimplificaAI] Inicializando...');
+        console.log('[SimplificaAI] V3 Inicializando...');
         loadApiKey();
         createOverlay();
         createContextMenu();
@@ -67,6 +70,10 @@
         document.body.appendChild(State.contextMenu);
     }
 
+    // ==========================================
+    // DETECÇÃO - ORIGINAL com melhoria para Gmail
+    // ==========================================
+
     function startEditorDetection() {
         detectEditor();
         setInterval(detectEditor, 1500);
@@ -77,20 +84,37 @@
     function detectEditor() {
         const url = window.location.href;
 
+        // Google Docs - ORIGINAL
         if (url.includes('docs.google.com')) {
-            const container = document.querySelector(EditorSelectors.gdocs.container);
-            if (container && State.currentEditor !== container) {
-                setupGoogleDocs(container);
+            const docsContainer = document.querySelector(EditorSelectors.gdocs.container);
+            if (docsContainer && State.currentEditor !== docsContainer) {
+                setupGoogleDocs(docsContainer);
             }
             return;
         }
 
+        // Gmail - MELHORADO: múltiplos seletores
         if (url.includes('mail.google.com')) {
-            document.querySelectorAll(EditorSelectors.gmail.compose).forEach(editor => {
-                if (!editor.dataset.saiAttached) setupGmail(editor);
+            const selectors = [
+                'div[role="dialog"] div[contenteditable="true"][role="textbox"]',
+                'div[role="dialog"] div[contenteditable="true"][g_editable="true"]',
+                'div.Am.Al.editable',
+                'div[aria-label*="mensagem"]',
+                'div[aria-label*="Message"]',
+                'div[contenteditable="true"][aria-label*="Corpo"]'
+            ];
+
+            selectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(editor => {
+                    if (!editor.dataset.saiAttached && isVisible(editor)) {
+                        setupGmail(editor);
+                    }
+                });
             });
+            return;
         }
 
+        // Genéricos - ORIGINAL
         document.querySelectorAll('[contenteditable="true"], textarea').forEach(editor => {
             if (!editor.dataset.saiAttached && isVisible(editor)) {
                 setupGenericEditor(editor);
@@ -98,9 +122,14 @@
         });
     }
 
+    function isVisible(el) {
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    }
+
     function handleFocusIn(e) {
-        if (Utils.isEditableElement(e.target) && !e.target.dataset.saiAttached) {
-            setupGenericEditor(e.target);
+        const target = e.target;
+        if (Utils.isEditableElement(target) && !target.dataset.saiAttached) {
+            setupGenericEditor(target);
         }
     }
 
@@ -108,53 +137,80 @@
         if (State.contextMenu && !State.contextMenu.contains(e.target)) {
             hideContextMenu();
         }
-        if (e.target.closest('.sai-highlight-line')) {
-            const highlight = e.target.closest('.sai-highlight-line');
-            showContextMenu(e, highlight.dataset.text);
+
+        const bgHighlight = e.target.closest('.sai-highlight-bg');
+        if (bgHighlight) {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e, bgHighlight.dataset.text);
+            return;
+        }
+
+        const lineHighlight = e.target.closest('.sai-highlight-line');
+        if (lineHighlight) {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e, lineHighlight.dataset.text);
         }
     }
 
-    function isVisible(el) {
-        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-    }
+    // ==========================================
+    // SETUP - ORIGINAL
+    // ==========================================
 
     function setupGoogleDocs(container) {
         console.log('[SimplificaAI] Google Docs detectado');
         State.currentEditor = container;
         State.editorType = 'gdocs';
+
         window.addEventListener('scroll', debouncedAnalysis, true);
         window.addEventListener('resize', debouncedAnalysis);
+        document.addEventListener('selectionchange', debouncedAnalysis);
+
         setTimeout(analyzeGoogleDocs, 1000);
     }
 
     function setupGmail(editor) {
         console.log('[SimplificaAI] Gmail detectado');
         editor.dataset.saiAttached = 'true';
-        attachEditorListeners({
+
+        const wrapper = {
             element: editor,
             type: 'gmail',
             getText: () => editor.innerText || '',
-            setText: (oldText, newText) => replaceTextInElement(editor, oldText, newText)
-        });
+            setText: (oldText, newText) => replaceInGmail(editor, oldText, newText)
+        };
+
+        attachEditorListeners(wrapper);
     }
 
     function setupGenericEditor(editor) {
-        console.log('[SimplificaAI] Editor genérico detectado');
+        console.log('[SimplificaAI] Editor genérico:', editor.tagName);
         editor.dataset.saiAttached = 'true';
-        attachEditorListeners({
+
+        const wrapper = {
             element: editor,
             type: 'generic',
             getText: () => editor.value || editor.innerText || '',
-            setText: (oldText, newText) => replaceTextInElement(editor, oldText, newText)
-        });
+            setText: (oldText, newText) => replaceInGeneric(editor, oldText, newText)
+        };
+
+        attachEditorListeners(wrapper);
     }
 
     function attachEditorListeners(wrapper) {
+        const { element } = wrapper;
+
         ['input', 'keyup', 'paste'].forEach(event => {
-            wrapper.element.addEventListener(event, () => scheduleAnalysis(wrapper));
+            element.addEventListener(event, () => scheduleAnalysis(wrapper));
         });
+
         scheduleAnalysis(wrapper);
     }
+
+    // ==========================================
+    // ANÁLISE - ORIGINAL
+    // ==========================================
 
     function scheduleAnalysis(wrapper) {
         if (State.analysisTimeout) clearTimeout(State.analysisTimeout);
@@ -168,61 +224,83 @@
     function analyzeEditor(wrapper) {
         const text = wrapper.getText();
         if (!text || text === State.lastAnalyzedText) return;
+
         State.lastAnalyzedText = text;
         clearHighlights();
 
-        Utils.segmentSentences(text).forEach(sentence => {
+        const sentences = Utils.segmentSentences(text);
+
+        sentences.forEach(sentence => {
             const trimmed = sentence.trim();
             if (trimmed.length < Utils.CONFIG.minTextLength) return;
+
             const analysis = Utils.calculateFleschScore(trimmed);
             if (!analysis || analysis.level === 'easy') return;
+
             highlightText(wrapper, trimmed, analysis);
         });
     }
 
     function analyzeGoogleDocs() {
         if (!State.currentEditor) return;
+
         clearHighlights();
 
+        // SVG - ORIGINAL
         const svgRects = document.querySelectorAll(EditorSelectors.gdocs.svgText);
         if (svgRects.length > 0) {
             svgRects.forEach(rect => {
                 const text = rect.getAttribute('aria-label');
                 if (!text) return;
+
                 const analysis = Utils.calculateFleschScore(text);
                 if (!analysis || analysis.level === 'easy') return;
-                drawHighlight(rect.getBoundingClientRect(), analysis.level, text);
+
+                // CORREÇÃO 1: Usa fundo colorido
+                drawBackgroundHighlight(rect.getBoundingClientRect(), analysis.level, text);
             });
             return;
         }
 
-        document.querySelectorAll(EditorSelectors.gdocs.htmlLine).forEach(line => {
+        // HTML fallback - ORIGINAL
+        const htmlLines = document.querySelectorAll(EditorSelectors.gdocs.htmlLine);
+        htmlLines.forEach(line => {
             const text = line.innerText;
             if (!text) return;
-            Utils.segmentSentences(text).forEach(sentence => {
+
+            const sentences = Utils.segmentSentences(text);
+            sentences.forEach(sentence => {
                 const analysis = Utils.calculateFleschScore(sentence.trim());
                 if (!analysis || analysis.level === 'easy') return;
+
                 const range = findTextRange(line, sentence.trim());
                 if (range) {
-                    Array.from(range.getClientRects()).forEach(rect => {
-                        drawHighlight(rect, analysis.level, sentence.trim());
-                    });
+                    const rects = range.getClientRects();
+                    for (const rect of rects) {
+                        drawBackgroundHighlight(rect, analysis.level, sentence.trim());
+                    }
                 }
             });
         });
     }
 
     function highlightText(wrapper, text, analysis) {
-        if (wrapper.element.tagName === 'TEXTAREA' || wrapper.element.tagName === 'INPUT') return;
-        const range = findTextRange(wrapper.element, text);
+        const { element } = wrapper;
+
+        if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') return;
+
+        const range = findTextRange(element, text);
         if (!range) return;
-        Array.from(range.getClientRects()).forEach(rect => {
-            drawHighlight(rect, analysis.level, text);
-        });
+
+        const rects = range.getClientRects();
+        for (const rect of rects) {
+            drawBackgroundHighlight(rect, analysis.level, text);
+        }
     }
 
     function findTextRange(root, text) {
         if (!root || !text) return null;
+
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
         let node;
         while (node = walker.nextNode()) {
@@ -237,32 +315,38 @@
         return null;
     }
 
-    function drawHighlight(rect, type, text) {
-        if (!rect || rect.width === 0 || rect.height === 0) return;
+    // ==========================================
+    // VISUALIZAÇÃO - CORREÇÃO 1: FUNDO COLORIDO
+    // ==========================================
+
+    function drawBackgroundHighlight(rect, type, text) {
+        if (!rect || rect.width < 5 || rect.height < 5) return;
+
         const scrollX = window.scrollX || window.pageXOffset;
         const scrollY = window.scrollY || window.pageYOffset;
 
-        const line = document.createElement('div');
-        line.className = `sai-highlight-line sai-${type}`;
-        line.style.left = `${rect.left + scrollX}px`;
-        line.style.top = `${rect.bottom + scrollY - 3}px`;
-        line.style.width = `${rect.width}px`;
-        line.dataset.text = text;
-        line.dataset.id = Utils.generateId();
+        const highlight = document.createElement('div');
+        highlight.className = `sai-highlight-bg sai-${type}`;
+        highlight.style.left = `${rect.left + scrollX}px`;
+        highlight.style.top = `${rect.top + scrollY}px`;
+        highlight.style.width = `${rect.width}px`;
+        highlight.style.height = `${rect.height}px`;
+        highlight.dataset.text = text;
+        highlight.dataset.id = Utils.generateId();
 
-        line.addEventListener('click', (e) => {
+        highlight.addEventListener('click', (e) => {
             e.stopPropagation();
             showContextMenu(e, text);
         });
 
-        line.addEventListener('contextmenu', (e) => {
+        highlight.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             showContextMenu(e, text);
         });
 
-        State.overlayLayer.appendChild(line);
-        State.highlights.set(line.dataset.id, { element: line, text });
+        State.overlayLayer.appendChild(highlight);
+        State.highlights.set(highlight.dataset.id, { element: highlight, text });
     }
 
     function clearHighlights() {
@@ -270,8 +354,13 @@
         State.highlights.clear();
     }
 
+    // ==========================================
+    // MENU E IA - CORREÇÃO 3: WRAPPER
+    // ==========================================
+
     function showContextMenu(event, text) {
         if (!State.contextMenu) return;
+
         const menu = State.contextMenu;
         const content = menu.querySelector('.sai-menu-content');
 
@@ -290,26 +379,22 @@
         menu.classList.add('visible');
 
         if (!State.apiKey) {
-            content.innerHTML = '<div class="sai-error"><p>API Key não configurada</p><p>Clique no ícone da extensão</p></div>';
+            content.innerHTML = '<div class="sai-error"><p>API Key não configurada</p></div>';
             return;
         }
 
         content.innerHTML = '<div class="sai-loading">Consultando IA...</div>';
 
-        fetchSuggestions(text).then(suggestions => {
-            renderSuggestions(content, suggestions, text);
-        }).catch(error => {
-            content.innerHTML = `<div class="sai-error"><p>Erro: ${error.message}</p></div>`;
-        });
+        Utils.callOpenRouter(State.apiKey, text)
+            .then(response => Utils.parseSuggestions(response))
+            .then(suggestions => renderSuggestions(content, suggestions, text))
+            .catch(error => {
+                content.innerHTML = `<div class="sai-error"><p>Erro: ${error.message}</p></div>`;
+            });
     }
 
     function hideContextMenu() {
         if (State.contextMenu) State.contextMenu.classList.remove('visible');
-    }
-
-    async function fetchSuggestions(text) {
-        const response = await Utils.callOpenRouter(State.apiKey, text);
-        return Utils.parseSuggestions(response);
     }
 
     function renderSuggestions(container, suggestions, originalText) {
@@ -319,7 +404,8 @@
         }
 
         let html = '<div class="sai-suggestions-list">';
-        suggestions.forEach((suggestion, index) => {
+
+        suggestions.forEach(suggestion => {
             const analysis = Utils.calculateFleschScore(suggestion);
             const score = analysis ? Math.round(analysis.score) : '--';
             const level = analysis ? analysis.level : 'unknown';
@@ -332,6 +418,7 @@
                 </div>
             </div>`;
         });
+
         html += '</div>';
         html += `<div class="sai-original"><strong>Original:</strong> ${escapeHtml(originalText)}</div>`;
 
@@ -346,64 +433,98 @@
         });
     }
 
+    // CORREÇÃO 3: applySuggestion corrigida
     function applySuggestion(oldText, newText) {
-        const activeElement = document.activeElement;
-        if (Utils.isEditableElement(activeElement)) {
-            replaceTextInElement(activeElement, oldText, newText);
-        } else {
-            State.highlights.forEach((data) => {
-                if (data.text === oldText) {
-                    const editor = findParentEditor(data.element);
-                    if (editor) replaceTextInElement(editor, oldText, newText);
+        console.log('[SimplificaAI] Aplicando:', oldText.slice(0, 30));
+
+        // Estratégia 1: Elemento ativo
+        const active = document.activeElement;
+        if (active && Utils.isEditableElement(active)) {
+            if (tryReplace(active, oldText, newText)) return;
+        }
+
+        // Estratégia 2: Busca em todos os editores
+        const editors = document.querySelectorAll('[contenteditable="true"], textarea, input');
+        for (const editor of editors) {
+            const text = editor.value || editor.innerText || '';
+            if (text.includes(oldText)) {
+                if (tryReplace(editor, oldText, newText)) {
+                    console.log('[SimplificaAI] Substituído com sucesso');
+                    return;
                 }
-            });
+            }
         }
-        setTimeout(() => {
-            if (State.editorType === 'gdocs') analyzeGoogleDocs();
-            else detectEditor();
-        }, 500);
+
+        console.error('[SimplificaAI] Wrapper não encontrado');
+        alert('Texto não encontrado. Clique no editor antes de aplicar.');
     }
 
-    function findParentEditor(element) {
-        let parent = element.parentElement;
-        while (parent) {
-            if (Utils.isEditableElement(parent)) return parent;
-            parent = parent.parentElement;
-        }
-        return null;
-    }
-
-    function replaceTextInElement(element, oldText, newText) {
-        if (!element || !oldText || !newText) return;
+    function tryReplace(element, oldText, newText) {
         try {
             if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
                 const start = element.value.indexOf(oldText);
-                if (start !== -1) {
-                    element.value = element.value.substring(0, start) + newText + 
-                                   element.value.substring(start + oldText.length);
-                    element.dispatchEvent(new Event('input', { bubbles: true }));
-                    element.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            } else {
-                const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
-                let node;
-                while (node = walker.nextNode()) {
-                    const index = node.nodeValue.indexOf(oldText);
-                    if (index !== -1) {
-                        const range = document.createRange();
-                        range.setStart(node, index);
-                        range.setEnd(node, index + oldText.length);
-                        range.deleteContents();
-                        range.insertNode(document.createTextNode(newText));
-                        element.dispatchEvent(new Event('input', { bubbles: true }));
-                        break;
-                    }
+                if (start === -1) return false;
+                element.value = element.value.substring(0, start) + newText + 
+                               element.value.substring(start + oldText.length);
+                triggerEvents(element);
+                return true;
+            }
+
+            // Range API
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+                const index = node.nodeValue.indexOf(oldText);
+                if (index !== -1) {
+                    const range = document.createRange();
+                    range.setStart(node, index);
+                    range.setEnd(node, index + oldText.length);
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(newText));
+                    triggerEvents(element);
+                    return true;
                 }
             }
+
+            // innerHTML fallback
+            if (element.innerText && element.innerText.includes(oldText)) {
+                const temp = document.createElement('div');
+                temp.textContent = oldText;
+                const escapedOld = temp.innerHTML;
+                temp.textContent = newText;
+                const escapedNew = temp.innerHTML;
+
+                if (element.innerHTML.includes(escapedOld)) {
+                    element.innerHTML = element.innerHTML.replace(escapedOld, escapedNew);
+                    triggerEvents(element);
+                    return true;
+                }
+            }
+
+            return false;
         } catch (e) {
-            console.error('[SimplificaAI] Erro ao substituir:', e);
+            console.error('[SimplificaAI] Erro:', e);
+            return false;
         }
     }
+
+    function triggerEvents(element) {
+        ['input', 'change', 'keyup'].forEach(type => {
+            element.dispatchEvent(new Event(type, { bubbles: true }));
+        });
+    }
+
+    function replaceInGmail(editor, oldText, newText) {
+        tryReplace(editor, oldText, newText);
+    }
+
+    function replaceInGeneric(editor, oldText, newText) {
+        tryReplace(editor, oldText, newText);
+    }
+
+    // ==========================================
+    // UTILITÁRIOS
+    // ==========================================
 
     function handleMessages(request, sender, sendResponse) {
         if (request.action === 'updateApiKey') {
