@@ -1,0 +1,31 @@
+.sai-overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2147483647;
+}
+
+.sai-highlight-line {
+    position: absolute;
+    height: 3px;
+    opacity: 0.6;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.2s;
+}
+
+.sai-highlight-line:hover {
+    height: 5px;
+    opacity: 1;
+}
+
+.sai-hard {
+    background-color: #EF4444;
+}
+
+.sai-medium {
+    background-color: #F59E0B;
+}
