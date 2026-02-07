@@ -1,38 +1,51 @@
 :root {
     --primary: #2563EB;
-    --bg-page: #F8FAFC;
-    --bg-surface: #FFFFFF;
-    --border: #E2E8F0;
-    --highlight-red: rgba(239, 68, 68, 0.2);
-    --highlight-red-hover: rgba(239, 68, 68, 0.4);
-    --highlight-yellow: rgba(245, 158, 11, 0.2);
-    --highlight-yellow-hover: rgba(245, 158, 11, 0.4);
+    --bg-page: #FFFFFF;
+    --text-main: #111827;
+
+    /* Cores de Realce */
+    --highlight-yellow-bg: #FDE047;
+    --highlight-yellow-text: #000000;
+
+    --highlight-red-bg: #EF4444;
+    --highlight-red-text: #000000;
 }
 
 body {
     font-family: 'Inter', sans-serif;
     background: var(--bg-page);
-    color: #1E293B;
+    color: var(--text-main);
     margin: 0;
+    padding-bottom: 100px;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 20px;
 }
 
 /* Header */
 header {
-    background: var(--bg-surface);
-    border-bottom: 1px solid var(--border);
+    background: #fff;
+    border-bottom: 1px solid #E5E7EB;
     padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
 .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+input {
+    padding: 10px;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    width: 250px;
 }
 
 .btn-primary {
@@ -45,151 +58,131 @@ header {
     font-weight: 600;
 }
 
-input {
-    padding: 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-right: 10px;
-    width: 200px;
-}
-
-/* Editor Layout */
+/* EDITOR VISUAL */
 .editor-wrapper {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    gap: 30px;
     margin-top: 30px;
 }
 
-/* Rich Editor */
 .rich-editor {
-    background: var(--bg-surface);
-    min-height: 500px;
-    padding: 40px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-family: 'Merriweather', serif;
-    font-size: 1.1rem;
+    min-height: 400px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.25rem;
+    /* Line-height normalizado para que o fundo fique contínuo */
     line-height: 1.8;
     outline: none;
     white-space: pre-wrap;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    color: #374151;
 }
 
-/* Highlights */
+/* A CLASSE DE REALCE (Bloco Contínuo Arredondado) */
 .sentence-highlight {
     cursor: context-menu;
-    /* Indica clique direito */
-    border-radius: 4px;
-    transition: background 0.2s;
-    padding: 2px 0;
+
+    /* Visual */
+    padding: 4px 8px;
+    /* Padding interno */
+    border-radius: 12px;
+    /* Bordas BEM arredondadas */
+
+    /* Espaçamento ENTRE blocos diferentes */
+    margin: 0 6px;
+
+    /* IMPORTANTE: box-decoration-break REMOVIDO. 
+       Isso garante que o fundo seja contínuo nas quebras de linha. */
+
+    transition: filter 0.2s;
+    /* Adiciona um leve display inline-block para respeitar melhor margens verticais se necessário, 
+       mas mantendo o fluxo de texto */
+    display: inline;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sentence-highlight:hover {
+    filter: brightness(0.95);
+    cursor: pointer;
 }
 
 .sentence-highlight.hard {
-    background-color: var(--highlight-red);
-    border-bottom: 2px solid rgba(239, 68, 68, 0.3);
-}
-
-.sentence-highlight.hard:hover {
-    background-color: var(--highlight-red-hover);
+    background-color: var(--highlight-red-bg);
+    color: var(--highlight-red-text);
 }
 
 .sentence-highlight.medium {
-    background-color: var(--highlight-yellow);
-    border-bottom: 2px solid rgba(245, 158, 11, 0.3);
+    background-color: var(--highlight-yellow-bg);
+    color: var(--highlight-yellow-text);
 }
 
-.sentence-highlight.medium:hover {
-    background-color: var(--highlight-yellow-hover);
-}
-
-/* Sidebar Metrics */
-.sidebar {
-    background: var(--bg-surface);
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    height: fit-content;
-}
-
-.score-circle {
-    font-size: 3rem;
-    font-weight: 700;
-    text-align: center;
-    color: var(--primary);
-    margin: 20px 0;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-}
-
-.dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.dot.red {
-    background: #EF4444;
-}
-
-.dot.yellow {
-    background: #F59E0B;
-}
-
-.dot.green {
-    background: #10B981;
-}
-
-/* Context Menu Customizado */
+/* Menu Contexto */
 .context-menu {
     position: absolute;
     background: white;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    width: 300px;
-    z-index: 1000;
-    overflow: hidden;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    width: 320px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s;
+    display: flex;
+    flex-direction: column;
 }
 
-.hidden {
-    display: none;
+.context-menu.visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .menu-header {
-    background: #F1F5F9;
-    padding: 10px 15px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #64748B;
-    border-bottom: 1px solid var(--border);
+    background: #F9FAFB;
+    padding: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6B7280;
+    border-bottom: 1px solid #E5E7EB;
+    border-radius: 12px 12px 0 0;
 }
 
 .menu-options {
-    padding: 5px 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .menu-item {
-    padding: 10px 15px;
-    cursor: pointer;
+    padding: 12px 15px;
+    border-bottom: 1px solid #F3F4F6;
     font-size: 0.95rem;
-    border-bottom: 1px solid #f1f1f1;
+    cursor: pointer;
 }
 
 .menu-item:hover {
-    background-color: #F8FAFC;
+    background: #EFF6FF;
     color: var(--primary);
 }
 
-.menu-loading {
-    padding: 15px;
+.menu-item strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.loading-pulse {
+    padding: 20px;
     text-align: center;
-    color: #64748B;
-    font-style: italic;
+    color: #6B7280;
+    font-size: 0.9rem;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.5;
+    }
 }

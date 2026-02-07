@@ -1,151 +1,127 @@
+// --- CONFIGURAÇÃO OPENROUTER ---
 const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL_ID = "tngtech/tng-r1t-chimera:free";
+// Modelo solicitado
+const MODEL_ID = "openrouter/pony-alpha";
 
 const editor = document.getElementById('editor');
 const contextMenu = document.getElementById('contextMenu');
 const menuOptions = document.getElementById('menuOptions');
 const apiKeyInput = document.getElementById('apiKey');
 
-// --- 1. Algoritmo de Legibilidade (Flesch PT-BR) ---
-
-function countSyllables(word) {
-    word = word.toLowerCase();
-    if (word.length <= 3) return 1;
-    // Heurística simplificada para PT-BR: conta grupos vocálicos
-    const vowels = word.match(/[aáàãâeéêiíoóõôuúü]+/gi);
-    return vowels ? vowels.length : 1;
-}
-
+// --- 1. Algoritmo de Legibilidade (Flesch) ---
 function calculateFleschScore(text) {
-    // Limpeza básica
     const cleanText = text.replace(/[^\w\sÀ-ÿ]/g, "");
     const words = cleanText.split(/\s+/).filter(w => w.length > 0);
-    const numWords = words.length;
+    if (words.length === 0) return 100;
 
-    if (numWords === 0) return 100;
-
-    // Segmentação de Sentenças (API nativa moderna do navegador)
-    const segmenter = new Intl.Segmenter('pt', { granularity: 'sentence' });
-    const sentences = [...segmenter.segment(text)].map(s => s.segment);
-    const numSentences = sentences.length;
-
-    let numSyllables = 0;
-    words.forEach(w => numSyllables += countSyllables(w));
-
-    // Fórmula Adaptada para PT (Martins et al / Flesch Reading Ease)
-    // Score = 248.835 - (1.015 * ASL) - (84.6 * ASW)
-    // ASL = Average Sentence Length (Palavras / Frases)
-    // ASW = Average Syllables per Word (Sílabas / Palavras)
-
-    const ASL = numWords / numSentences;
-    const ASW = numSyllables / numWords;
-
-    let score = 248.835 - (1.015 * ASL) - (84.6 * ASW);
-
-    // Normalizar para 0-100 (aproximado para facilitar UI)
-    return Math.min(100, Math.max(0, score));
-}
-
-// --- 2. Análise e Highlight ---
-
-document.getElementById('btnAnalyze').addEventListener('click', analyzeText);
-
-function analyzeText() {
-    const text = editor.innerText; // Pega texto puro
-    const overallScore = calculateFleschScore(text);
-
-    // Atualiza Painel Lateral
-    const display = document.getElementById('scoreDisplay');
-    display.innerText = Math.round(overallScore);
-    display.style.color = overallScore < 50 ? '#EF4444' : (overallScore < 75 ? '#F59E0B' : '#10B981');
-    document.getElementById('scoreText').innerText = getScoreLabel(overallScore);
-
-    // Processa Highlights por Frase
     const segmenter = new Intl.Segmenter('pt', { granularity: 'sentence' });
     const sentences = [...segmenter.segment(text)];
 
-    let newHTML = "";
-
-    sentences.forEach(({ segment }) => {
-        const score = calculateFleschScore(segment);
-        const trimmed = segment.trim();
-
-        if (trimmed.length < 5) {
-            newHTML += segment; // Ignora frases muito curtas
-            return;
-        }
-
-        let className = "";
-        if (score < 40) className = "hard";       // Vermelho
-        else if (score < 60) className = "medium"; // Amarelo
-
-        if (className) {
-            // Envolvemos em SPAN com classe e ID para substituição
-            newHTML += `<span class="sentence-highlight ${className}" data-original="${trimmed}">${segment}</span>`;
-        } else {
-            newHTML += segment;
+    let numSyllables = 0;
+    words.forEach(w => {
+        w = w.toLowerCase();
+        if (w.length <= 2) { numSyllables += 1; }
+        else {
+            const vowels = w.match(/[aáàãâeéêiíoóõôuúü]+/gi);
+            numSyllables += vowels ? vowels.length : 1;
         }
     });
 
-    editor.innerHTML = newHTML;
+    const ASL = words.length / sentences.length;
+    const ASW = numSyllables / words.length;
+
+    let score = 248.835 - (1.015 * ASL) - (84.6 * ASW);
+    return Math.min(100, Math.max(0, score));
 }
 
-function getScoreLabel(score) {
-    if (score < 50) return "Texto Muito Difícil (Universitário)";
-    if (score < 75) return "Texto Médio (Ensino Médio)";
-    return "Texto Fácil (Ensino Fundamental)";
-}
+// --- 2. Análise e Renderização Visual ---
+document.getElementById('btnAnalyze').addEventListener('click', () => {
+    const text = editor.innerText;
+    document.getElementById('statusIndicator').innerText = `Índice de Legibilidade Global: ${Math.round(calculateFleschScore(text))}`;
 
-// --- 3. Menu de Contexto (Right Click) ---
+    const segmenter = new Intl.Segmenter('pt', { granularity: 'sentence' });
+    const segments = segmenter.segment(text);
 
-let currentTargetSpan = null; // Armazena qual frase estamos editando
+    let html = "";
+
+    for (const { segment } of segments) {
+        const trimmed = segment.trim();
+        if (trimmed.length < 3) { html += segment; continue; }
+
+        const score = calculateFleschScore(trimmed);
+        let className = "";
+
+        // Critérios de Dificuldade
+        if (score < 40) className = "hard";
+        else if (score < 60) className = "medium";
+
+        if (className) {
+            // Adiciona espaço antes e depois do span para garantir o espaçamento entre blocos
+            html += ` <span class="sentence-highlight ${className}" data-original="${trimmed}">${segment.trim()}</span> `;
+        } else {
+            html += segment;
+        }
+    }
+
+    editor.innerHTML = html;
+});
+
+// --- 3. Menu Contexto ---
+let currentTarget = null;
 
 editor.addEventListener('contextmenu', (e) => {
-    // Verifica se clicou em um highlight
-    if (e.target.classList.contains('sentence-highlight')) {
-        e.preventDefault(); // Bloqueia menu nativo
+    const target = e.target.closest('.sentence-highlight');
+    if (target) {
+        e.preventDefault();
+        currentTarget = target;
 
-        currentTargetSpan = e.target;
-        const originalText = e.target.getAttribute('data-original');
+        let x = e.pageX;
+        let y = e.pageY + 10;
+        if (x + 320 > window.innerWidth) x = window.innerWidth - 330;
 
-        // Posiciona o menu
-        contextMenu.style.top = `${e.pageY}px`;
-        contextMenu.style.left = `${e.pageX}px`;
-        contextMenu.classList.remove('hidden');
+        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`;
+        contextMenu.classList.add('visible');
 
-        // Chama IA
-        fetchSimplifications(originalText);
+        fetchSuggestions(target.getAttribute('data-original'));
     } else {
-        contextMenu.classList.add('hidden');
+        contextMenu.classList.remove('visible');
     }
 });
 
-// Fecha menu ao clicar fora
 document.addEventListener('click', (e) => {
-    if (!contextMenu.contains(e.target)) {
-        contextMenu.classList.add('hidden');
-    }
+    if (!contextMenu.contains(e.target)) contextMenu.classList.remove('visible');
 });
 
-// --- 4. Integração com IA (OpenRouter) ---
-
-async function fetchSimplifications(sentence) {
+// --- 4. Integração IA (OpenRouter + Pony Alpha) ---
+async function fetchSuggestions(sentence) {
     const apiKey = apiKeyInput.value.trim();
+
     if (!apiKey) {
-        menuOptions.innerHTML = `<div class="menu-loading" style="color:red;">Insira sua API Key no topo.</div>`;
+        menuOptions.innerHTML = `<div style="padding:15px; color:red;">⚠️ Insira sua OpenRouter API Key</div>`;
         return;
     }
 
-    menuOptions.innerHTML = `<div class="menu-loading">Gerando opções com IA...</div>`;
+    menuOptions.innerHTML = `<div class="loading-pulse">Consultando IA (Pony)...</div>`;
 
+    // Prompt robusto para tentar forçar o formato JSON mesmo em modelos alpha
     const prompt = `
-    A frase a seguir é muito complexa: "${sentence}".
-    Gere 3 alternativas reescritas em Linguagem Simples (nível fundamental).
-    As frases devem ser curtas, diretas e manter o sentido original.
-    Responda APENAS com as 3 frases separadas por quebra de linha, sem numeração ou introdução.
+    Você é um especialista em Linguagem Simples. Reescreva a frase complexa abaixo para que uma criança de 10 anos entenda.
+    
+    Frase Original: "${sentence}"
+    
+    Regras:
+    1. Use ordem direta, voz ativa e palavras simples.
+    2. Mantenha o sentido original.
+    3. Gere exatamente 3 sugestões diferentes.
+    
+    FORMATO OBRIGATÓRIO:
+    Responda APENAS um Array JSON contendo as 3 strings. Não escreva nenhuma introdução ou explicação.
+    Exemplo: ["Sugestão simples 1", "Sugestão simples 2", "Sugestão simples 3"]
     `;
 
     try {
+        // Estrutura padrão OpenRouter/OpenAI
         const response = await fetch(API_URL, {
             method: "POST",
             headers: {
@@ -155,46 +131,68 @@ async function fetchSimplifications(sentence) {
             },
             body: JSON.stringify({
                 model: MODEL_ID,
-                messages: [{ role: "user", content: prompt }]
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.3, // Baixa temperatura para tentar manter o formato
             })
         });
 
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || "Erro na API OpenRouter");
+        }
+
         const data = await response.json();
-        const content = data.choices[0].message.content;
+        let content = data.choices[0].message.content;
 
-        // Processa resposta (remove numeração se a IA colocar)
-        const options = content.split('\n').filter(line => line.trim().length > 0);
+        // Limpeza e Parsing Robusto
+        content = content.replace(/```json/g, "").replace(/```/g, "").trim();
 
-        renderMenuOptions(options);
+        let suggestions = [];
+        try {
+            // Tenta parsear como JSON puro
+            suggestions = JSON.parse(content);
+        } catch (e) {
+            console.warn("Falha no JSON puro, tentando regex fallback para modelo alpha.");
+            // Fallback: Tenta extrair textos entre aspas se o JSON falhar (comum em modelos alpha)
+            const matches = content.match(/"([^"]+)"/g);
+            if (matches) {
+                suggestions = matches.map(s => s.replace(/"/g, "")).slice(0, 3);
+            } else {
+                // Último recurso: divide por linhas
+                suggestions = content.split('\n').filter(s => s.length > 5).slice(0, 3);
+            }
+        }
+
+        // Garante que é um array antes de renderizar
+        if (!Array.isArray(suggestions)) suggestions = [];
+
+        renderSuggestions(suggestions);
 
     } catch (error) {
-        menuOptions.innerHTML = `<div class="menu-loading" style="color:red;">Erro: ${error.message}</div>`;
+        console.error(error);
+        menuOptions.innerHTML = `<div style="padding:15px; color:red;">Erro: ${error.message}</div>`;
     }
 }
 
-function renderMenuOptions(options) {
+function renderSuggestions(list) {
     menuOptions.innerHTML = "";
 
-    options.forEach(opt => {
-        // Limpa marcadores que a IA possa ter colocado (1. , -, etc)
-        const cleanOpt = opt.replace(/^[\d\-\.\)]+\s*/, "").trim();
+    if (list.length === 0) {
+        menuOptions.innerHTML = `<div style="padding:15px;">A IA não retornou sugestões válidas no formato esperado. Tente novamente.</div>`;
+        return;
+    }
 
+    list.forEach(text => {
         const div = document.createElement('div');
         div.className = 'menu-item';
-        div.innerText = cleanOpt;
+        div.innerHTML = `<strong>Opção Simples:</strong> ${text}`;
 
-        // Clique na opção substitui o texto
         div.addEventListener('click', () => {
-            if (currentTargetSpan) {
-                // Substitui o SPAN pelo texto novo (remove o highlight)
-                const textNode = document.createTextNode(cleanOpt + " "); // Adiciona espaço de segurança
-                currentTargetSpan.parentNode.replaceChild(textNode, currentTargetSpan);
-
-                // Esconde menu
-                contextMenu.classList.add('hidden');
-
-                // Recalcula score global (opcional, para atualizar a métrica)
-                // calculateFleschScore(editor.innerText); 
+            if (currentTarget) {
+                // Substitui o texto e remove o realce
+                const newText = document.createTextNode(" " + text + " ");
+                currentTarget.parentNode.replaceChild(newText, currentTarget);
+                contextMenu.classList.remove('visible');
             }
         });
 
