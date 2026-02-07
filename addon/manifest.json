@@ -1,12 +1,13 @@
 {
     "manifest_version": 3,
-    "name": "SimplificaAI - Whitelist Hack",
-    "version": "6.0.0",
-    "description": "Força modo de anotação no Google Docs via ID Spoofing.",
+    "name": "SimplificaAI - Linguagem Simples",
+    "version": "1.0.0",
+    "description": "Transforma textos complexos em linguagem simples usando IA. Funciona em Gmail, Google Docs, PJe e CKEditor.",
     "permissions": [
         "activeTab",
         "scripting",
-        "storage"
+        "storage",
+        "contextMenus"
     ],
     "host_permissions": [
         "<all_urls>"
@@ -50,5 +51,18 @@
                 "<all_urls>"
             ]
         }
-    ]
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icon16.png",
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
 }

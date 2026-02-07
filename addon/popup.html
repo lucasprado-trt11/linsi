@@ -1,33 +1,40 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
-    <title>Configuração SimplificaAI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimplificaAI - Configuração</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Override leve para o popup ficar limpo */
-        body {
-            margin: 0;
-            background: #F3F4F6;
-        }
-    </style>
 </head>
-
 <body class="popup-body">
     <div class="popup-container">
-        <h2 style="margin-top:0; color:#2563EB;">🦄 SimplificaAI</h2>
-        <p style="font-size:13px; color:#4B5563;">Insira sua chave da OpenRouter para ativar a inteligência artificial.
-        </p>
+        <h2>📝 SimplificaAI</h2>
+        <p>Configure sua chave de API da OpenRouter para ativar as sugestões de IA.</p>
 
-        <label style="font-size:12px; font-weight:bold;">API Key (OpenRouter)</label>
-        <input type="password" id="apiKeyInput" class="popup-input" placeholder="sk-or-v1-...">
+        <label style="font-size: 12px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px;">
+            API Key (OpenRouter)
+        </label>
+        <input 
+            type="password" 
+            id="apiKeyInput" 
+            class="popup-input" 
+            placeholder="sk-or-v1-..."
+            autocomplete="off"
+        >
 
         <button id="saveBtn" class="popup-btn">Salvar Configuração</button>
 
-        <div id="statusMsg" style="margin-top:10px; font-size:12px; text-align:center; min-height:20px;"></div>
+        <div id="statusMsg"></div>
+
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #E5E7EB;">
+            <p style="font-size: 11px; color: #6B7280; margin: 0;">
+                <strong>Como obter sua chave:</strong><br>
+                1. Acesse <a href="https://openrouter.ai" target="_blank" style="color: #2563EB;">openrouter.ai</a><br>
+                2. Crie uma conta gratuita<br>
+                3. Gere uma API Key em "Keys"
+            </p>
+        </div>
     </div>
     <script src="popup.js"></script>
 </body>
-
 </html>
