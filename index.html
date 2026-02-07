@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimplificaAI Editor Interativo</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Merriweather:wght@300;400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <h1>✨ SimplificaAI <span class="badge">Editor</span></h1>
+            </div>
+            <div class="controls">
+                <input type="password" id="apiKey" placeholder="Sua OpenRouter API Key">
+                <button id="btnAnalyze" class="btn-primary">🔍 Analisar Legibilidade</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="editor-wrapper">
+            <div id="editor" class="rich-editor" contenteditable="true" spellcheck="false">
+                Nesta senda, impende obtemperar que a tutela jurisdicional invocada na peça exordial carece de
+                pressupostos. O decurso do lapso temporal ensejou a preclusão consumativa. O menino correu no parque. A
+                casa caiu.
+            </div>
+
+            <div class="sidebar">
+                <div class="metric-box">
+                    <h3>Legibilidade (Flesch)</h3>
+                    <div id="scoreDisplay" class="score-circle">--</div>
+                    <p id="scoreText">Aguardando análise...</p>
+                </div>
+                <div class="legend">
+                    <h4>Legenda</h4>
+                    <div class="legend-item"><span class="dot red"></span> Muito Difícil (Reescrever)</div>
+                    <div class="legend-item"><span class="dot yellow"></span> Difícil (Simplificar)</div>
+                    <div class="legend-item"><span class="dot green"></span> Fácil (Manter)</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="contextMenu" class="context-menu hidden">
+        <div class="menu-header">✨ Sugestões da IA</div>
+        <div id="menuOptions" class="menu-options">
+            <div class="menu-loading">Gerando simplificações...</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
